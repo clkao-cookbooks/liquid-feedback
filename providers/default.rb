@@ -31,6 +31,7 @@ action :create do
 
   db_user = @new_resource.db_user || "lf_#{new_resource.organisation}"
   db_name = @new_resource.db_name || "lf_#{new_resource.organisation}"
+  db_host = @new_resource.db_host || "localhost"
   db_password = @new_resource.db_password || secure_password
   lf_dir = "#{@new_resource.basedir}/#{@new_resource.organisation}"
   directory lf_dir
@@ -226,6 +227,7 @@ end
     variables ({:db_user => db_user,
                 :db_name => db_name,
                 :db_password => db_password,
+                :db_host => db_host,
                 :prefix  => prefix,
                 :lf_dir  => lf_dir,
                 :email => new_resource.email,

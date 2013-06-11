@@ -44,6 +44,7 @@ attribute :webmcp_version, :kind_of => String, :default =>  "v1.2.5"
 
 attribute :lighttp_alias, :kind_of => [TrueClass, FalseClass], :default =>  true
 
+attribute :db_host, :kind_of => String, :default => "localhost"
 attribute :db_user, :kind_of => String
 attribute :db_name, :kind_of => String
 attribute :db_password, :kind_of => String

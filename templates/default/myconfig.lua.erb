@@ -40,7 +40,7 @@ config.absolute_base_url = "http://<%=node['fqdn']%><%=@prefix%>"
 
 -- Connection information for the LiquidFeedback database
 -- ------------------------------------------------------------------------
-config.database = { user='<%= @db_user %>', password='<%=@db_password%>', engine='postgresql', dbname='<%= @db_name %>' }
+config.database = { user='<%= @db_user %>', password='<%=@db_password%>', engine='postgresql', dbname='<%= @db_name %>', host='<%= @db_host %>' }
 
 
 -- Location of the rocketwiki binaries
