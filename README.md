@@ -73,11 +73,27 @@ Set up node attributes
 Include recipe.
 
 Your admin invitekey will be stored as node attribute
-```ruby 
+```ruby
 node['lf']['admin_invitecode']
 ```
 
 # Notes
+
+If you are provisioning postgresql on the same server, you should have pg_hba configured in your node:
+
+```json
+    "postgresql": {
+        "enable_pgdg_apt": true,
+        "version": "9.2",
+        "config": { "ssl": false },
+        "pg_hba": [
+            {"type": "local", "db": "all", "user": "postgres", "addr": null, "method": "ident"},
+            {"type": "local", "db": "all", "user": "lf_g0v", "addr": null, "method": "password"},
+            {"type": "host", "db": "all", "user": "all", "addr": "127.0.0.1/32", "method": "md5"},
+            {"type": "host", "db": "all", "user": "all", "addr": "::1/128", "method": "md5"}
+        ]
+    }
+```
 
 If you use chef-solo, you must set lf db password and postgresql password in
 node json directly:
