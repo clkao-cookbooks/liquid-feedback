@@ -1,0 +1,27 @@
+server {
+    listen       80;
+    server_name  <%= node['fqdn'] %> localhost;
+
+    location "<%=@prefix%>/static" {
+        if ($uri ~ "\.(js|css|png|ico)") {
+            add_header Cache-Control "public, max-age=86400";
+        }
+        alias <%=@lf_dir%>/liquid_feedback_frontend/static;
+    }
+    location <%=@prefix%>/fastpath {
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param  WEBMCP_APP_BASEPATH <%=@lf_dir%>/liquid_feedback_frontend/;
+        fastcgi_param  WEBMCP_CONFIG_NAME myconfig;
+        fastcgi_param  SCRIPT_FILENAME  <%=@lf_dir%>/liquid_feedback_frontend/fastpath/getpic;
+        fastcgi_pass   unix:/var/run/fcgiwrap.socket;
+    }
+    location <%=@prefix%> {
+        rewrite "^<%=@prefix%>/([^\?]*)(\?(.*))?$" "<%=@prefix%>/webmcp-wrapper.lua?_webmcp_path=$1&$3" break;
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param  SCRIPT_FILENAME  <%=@lf_dir%>/webmcp/cgi-bin/webmcp-wrapper.lua;
+        fastcgi_param  WEBMCP_APP_BASEPATH <%=@lf_dir%>/liquid_feedback_frontend/;
+        fastcgi_param  WEBMCP_CONFIG_NAME myconfig;
+        fastcgi_param  LANG en_US.UTF-8;
+        fastcgi_pass   unix:/var/run/fcgiwrap.socket;
+    }
+}

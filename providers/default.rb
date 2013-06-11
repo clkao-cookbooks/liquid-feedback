@@ -19,11 +19,15 @@
 
 
 include Opscode::OpenSSL::Password
-include Chef::Mixin::LanguageIncludeRecipe
+include Chef::DSL::Recipe
+
+
 
 action :create do
-  include_recipe "mercurial"
-  
+  @run_context.include_recipe "mercurial"
+  @run_context.include_recipe "fcgiwrap"
+  @run_context.include_recipe "nginx"
+
   #########################################################################
   ########################### BACKEND ####################################
   #########################################################################
@@ -35,7 +39,7 @@ action :create do
   db_password = @new_resource.db_password || secure_password
   lf_dir = "#{@new_resource.basedir}/#{@new_resource.organisation}"
   directory lf_dir
-  
+
   ######### Checkout core code
   if @new_resource.core_repo_type == 'git'
     git "#{lf_dir}/liquid_feedback_core" do
@@ -53,7 +57,7 @@ action :create do
 
   ########## Set up Postgre SQL Database
 
-  include_recipe "database::postgresql"
+  @run_context.include_recipe "database::postgresql"
 
   postgresql_connection_info = {:host => "127.0.0.1", :port => 5432, :username => 'postgres', :password => node['postgresql']['password']['postgres']}
 
@@ -87,7 +91,7 @@ action :create do
     action :nothing
     subscribes :run, resources(:postgresql_database => db_name), :immediately
   end
-  
+
   invite_code = secure_password
   template "#{lf_dir}/invitecode" do
     action :nothing
@@ -115,7 +119,7 @@ action :create do
   end
 
 
-  #%w{imagemagick}.each do | p | 
+  #%w{imagemagick}.each do | p |
   #  package p
   #end
 
@@ -128,7 +132,7 @@ action :create do
 
 
 
-  ######## Install WebMCP: 
+  ######## Install WebMCP:
   ######### Checkout core code
   mercurial "#{lf_dir}/webmcp-install" do
     repository new_resource.webmcp_repo
@@ -149,7 +153,7 @@ action :create do
   #  action :nothing
   #  subscribes :run, resources(:mercurial => "/root/install/webmcp")
 
-  ######## Install RocketWiki LqFb-Edition: 
+  ######## Install RocketWiki LqFb-Edition:
   directory "/root/install"
   package "ghc"
   package "libghc6-parsec3-dev"
@@ -252,30 +256,20 @@ end
   end
 
   ######## Configure lighty
-  package "lighttpd"
-  service "lighttpd"
-  
-  template "/etc/lighttpd/conf-available/60-liquidfeedback-modules.conf" do
-    notifies :restart, resources(:service => "lighttpd")
-  end
-  link "/etc/lighttpd/conf-enabled/60-liquidfeedback-modules.conf" do 
-    to "/etc/lighttpd/conf-available/60-liquidfeedback-modules.conf"
-    notifies :restart, resources(:service => "lighttpd")
-  end
-  
-  template "/etc/lighttpd/conf-available/61-liquidfeedback-#{@new_resource.organisation}.conf" do
+
+
+  template "/etc/nginx/sites-available/lqfb-#{@new_resource.organisation}" do
+    source "lqfb.erb"
+    owner "root"
+    group "root"
     variables ({
       :lf_dir  => lf_dir,
-      :prefix => prefix})
-    source "61-liquidfeedback.conf.erb"
-    mode 0644
-    notifies :restart, resources(:service => "lighttpd")
+      :prefix => prefix
+    })
+    mode 00755
   end
 
-  link "/etc/lighttpd/conf-enabled/61-liquidfeedback-#{@new_resource.organisation}.conf" do 
-    to "/etc/lighttpd/conf-available/61-liquidfeedback-#{new_resource.organisation}.conf"
-    notifies :restart, resources(:service => "lighttpd")
-  end
+  nginx_site "lqfb-#{@new_resource.organisation}"
 
   #TODO sending event notifications
   #su - www-data
@@ -291,11 +285,9 @@ action :start do
 end
 
 action :disable do
-  service "lighttpd"
-  template "/etc/lighttpd/conf-enabled/61-liquidfeedback-#{@new_resource.organisation}.conf" do
-    source "61-liquidfeedback.conf.erb"
-    action :delete
-    notifies :restart, resources(:service => "lighttpd")
+
+  nginx_site "lqfb-#{@new_resource.organisation}" do
+    enable false
   end
   service "lf_updated_#{@new_resource.organisation}" do
     action [:stop, :disable]
